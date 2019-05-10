@@ -4,6 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "SimExec",
+    platforms: [.macOS(.v10_14)],
     products: [
         .library(name: "SimExec", targets: ["SimExec"]),
         .executable(name: "sim-exec", targets: ["sim-exec"])

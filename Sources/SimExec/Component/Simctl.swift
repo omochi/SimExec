@@ -1,6 +1,6 @@
 import Foundation
 
-public enum Simctl {
+public struct Simctl {
     public typealias Devices = [String: [Device]]
     
     public struct Device: Codable {
@@ -22,24 +22,62 @@ public enum Simctl {
         return try ListResponse.decode(fromJSONData: data)
     }
     
-    public static func boot(udid: String) throws {
+    public func status() throws -> Device {
+        let res = try Simctl.list()
+        let devices = res.devices.flatMap { $1 }
+        guard let device = (devices.first { $0.udid == udid }) else {
+            throw MessageError("device not found: udid=\(udid)")
+        }
+        return device
+    }
+    
+    public func boot() throws {
         let args = [
             "xcrun", "simctl", "boot", udid
         ]
         try system(arguments: args)
     }
     
-    public static func install(udid: String, appURL: URL) throws {
+    public func install(appURL: URL) throws {
         let args = [
             "xcrun", "simctl", "install", udid, appURL.path
         ]
         try system(arguments: args)
     }
     
-    public static func launch(udid: String, appID: String) throws {
-        let args = [
-            "xcrun", "simctl", "launch", "--console-pty", udid, appID
+    public func launch(appID: String,
+                       outFile: URL? = nil,
+                       errorFile: URL? = nil)
+        throws
+    {
+        var args = [
+            "xcrun", "simctl", "launch",
         ]
-        try capture(arguments: args)
+        if let outFile = outFile {
+            args.append("--stdout=\(outFile.path)")
+        }
+        if let errorFile = errorFile {
+            args.append("--stderr=\(errorFile.path)")
+        }
+        args += [udid, appID]
+        try system(arguments: args)
     }
+    
+    public func screenshot(file: URL) throws
+    {
+        let args = [
+            "xcrun", "simctl", "io", udid, "screenshot",
+            "--type=png", file.path
+        ]
+        try system(arguments: args)
+    }
+    
+    public func terminate(appID: String) throws {
+        let args = [
+            "xcrun", "simctl", "terminate", udid, appID
+        ]
+        try system(arguments: args)
+    }
+    
+    public var udid: String
 }

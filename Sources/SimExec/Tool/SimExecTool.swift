@@ -12,9 +12,12 @@ public final class SimExecTool {
     private let logger: Logger
     private let resourceDirectory: URL
     
-    private var projectDir: URL!
-    private var buildDir: URL!
-    private var appFile: URL!
+    private var projectDir: URL?
+    private var buildDir: URL?
+    private var simctl: Simctl?
+    private var appFile: URL?
+    private var appOutFile: URL?
+    private var appErrorFile: URL?
 
     public init(options: Options) {
         let tag = "SimExecTool"
@@ -46,30 +49,26 @@ public final class SimExecTool {
             }
         }
         
+        let simctl = Simctl(udid: options.simulatorDeviceUDID)
+        self.simctl = simctl
+
         try assertDevice()
         try checkout()
         try build()
         try bootDevice()
         try installAppToDevice()
         try launchApp()
+        try takeScreenshots()
+        try terminateApp()
     }
     
     private func assertDevice() throws {
-        let device = try deviceStatus()
+        let device = try simctl!.status()
         guard device.isAvailable else {
             throw MessageError("device not available: udid=\(device.udid)")
         }
     }
-    
-    private func deviceStatus() throws -> Simctl.Device {
-        let udid = options.simulatorDeviceUDID
-        let res = try Simctl.list()
-        guard let device = (res.devices.flatMap { $1 }.first { $0.udid == udid }) else {
-            throw MessageError("device not found: udid=\(udid)")
-        }
-        return device
-    }
-    
+
     private func checkout() throws {
         let checkoutDir = try fileSystem.makeTemporaryDirectory(name: "checkout", deleteAfter: true)
 
@@ -90,7 +89,7 @@ public final class SimExecTool {
     }
     
     private func build() throws {
-        try fm.changeCurrentDirectory(to: projectDir)
+        try fm.changeCurrentDirectory(to: projectDir!)
         
         let sdks = try Xcodebuild.showSDKs()
         guard let sdk = (sdks.first {
@@ -116,37 +115,59 @@ public final class SimExecTool {
         logger.debug("buildDir=\(buildDir.path)")
         
         try xcodebuild.build(destinationUDID: options.simulatorDeviceUDID)
-        logger.debug("build ok")
         
         self.buildDir = buildDir
         self.appFile = buildDir.appendingPathComponent("TempApp.app")
     }
     
     private func bootDevice() throws {
-        var device = try deviceStatus()
+        var device = try simctl!.status()
         if device.state == "Booted" {
+            logger.debug("device is booted")
             return
         }
         
-        let udid = options.simulatorDeviceUDID
-        try Simctl.boot(udid: udid)
+        logger.debug("boot device")
+        try simctl!.boot()
 
         sleep(3)
             
-        device = try deviceStatus()
+        device = try simctl!.status()
         guard device.state == "Booted" else {
             throw MessageError("device boot failed")
         }
     }
     
     private func installAppToDevice() throws {
-        let udid = options.simulatorDeviceUDID
-        try Simctl.install(udid: udid, appURL: appFile)
+        logger.debug("install app")
+        try simctl!.install(appURL: appFile!)
     }
     
     private func launchApp() throws {
-        let udid = options.simulatorDeviceUDID
-        try Simctl.launch(udid: udid, appID: "simexec.TempApp")
+        logger.debug("launch app")
+        let dir = self.buildDir!
+        try fm.changeCurrentDirectory(to: dir)
+        
+        let outFile = dir.appendingPathComponent("out.txt")
+        let errorFile = dir.appendingPathComponent("error.txt")
+        try simctl!.launch(appID: "simexec.TempApp",
+                           outFile: outFile,
+                           errorFile: errorFile)
+    }
+    
+    private func takeScreenshots() throws {
+        let dir = self.buildDir!
+        for i in 0..<4 {
+            sleep(3)
+            let file = dir.appendingPathComponent("ss.\(i).png")
+            logger.debug("take ss: \(file.path)")
+            try simctl!.screenshot(file: file)
+        }
+    }
+    
+    private func terminateApp() throws {
+        logger.debug("terminate app")
+        try simctl!.terminate(appID: "simexec.TempApp")
     }
     
     public static func main(args: [String]) throws -> Never {

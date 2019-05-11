@@ -21,9 +21,11 @@ import UIKit
 class ViewController : UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = UIColor.blue
-        fputs("stdout", stdout)
-        fputs("stderr", stderr)
+        view.backgroundColor = UIColor.green
+        fputs("stdout\\n", stdout)
+        fflush(stdout)
+        fputs("stderr\\n", stderr)
+        fflush(stderr)
     }
 }
 """

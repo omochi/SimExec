@@ -8,7 +8,7 @@ public final class SimExecAgentSocketAdapter {
     private let queue: DispatchQueue
     private let logger: Logger
     private let nwListener: NWListener
-    private var connections: [JSONConnection]
+    private var connections: [MessageConnection]
     
     public var errorHandler: ((Error) -> Void)?
     
@@ -41,7 +41,7 @@ public final class SimExecAgentSocketAdapter {
     }
     
     private func onNewConnection(_ connection: NWConnection) {
-        let conn = JSONConnection(connection: connection)
+        let conn = MessageConnection(connection: connection)
         
         conn.errorHandler = { [weak self, weak conn] (error) in
             guard let self = self,
@@ -51,12 +51,12 @@ public final class SimExecAgentSocketAdapter {
             self.removeConneciton(conn)
         }
 
-        conn.receiveHandler = { [weak self, weak conn] (json) in
+        conn.receiveHandler = { [weak self, weak conn] (message) in
             guard let self = self,
                 let conn = conn else { return }
             
             do {
-                try self.onReceive(connection: conn, json: json)
+                try self.onReceive(connection: conn, message: message)
             } catch {
                 self.logger.error("\(error)")
                 self.removeConneciton(conn)
@@ -72,13 +72,13 @@ public final class SimExecAgentSocketAdapter {
         conn.start(queue: queue)
     }
     
-    private func removeConneciton(_ connection: JSONConnection) {
+    private func removeConneciton(_ connection: MessageConnection) {
         connection.close()
         connections.removeAll { $0 === connection }
     }
     
-    private func onReceive(connection: JSONConnection,
-                           json: ParsedJSON) throws
+    private func onReceive(connection: MessageConnection,
+                           message: MessageProtocol) throws
     {
         
     }

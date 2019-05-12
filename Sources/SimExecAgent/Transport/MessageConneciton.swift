@@ -36,7 +36,19 @@ public final class MessageConnection {
         connection.start(queue: queue)
     }
     
+    public func close() {
+        connection.close()
+    }
+    
+    public func send<T: MessageProtocol>(message: T) throws {
+        let encoder = MessageEncoder()
+        let json = try encoder.encode(message: message)
+        connection.send(json: json)
+    }
+    
     private func onReceive(json: ParsedJSON) throws {
-        
+        let decoder = MessageDecoder()
+        let message = try decoder.decode(from: json)
+        receiveHandler?(message)
     }
 }

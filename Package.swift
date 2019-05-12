@@ -11,7 +11,7 @@ let package = Package(
         .library(name: "SimExecAgent", targets: ["SimExecAgent"])
     ],
     dependencies: [
-        .package(url: "https://github.com/omochi/FineJSON", from: "1.10.0")
+        .package(url: "https://github.com/omochi/FineJSON", from: "1.11.0")
     ],
     targets: [
         .target(name: "SimExec", dependencies: []),

@@ -7,7 +7,7 @@ import RichJSONParser
 public final class JSONConnection {
     public let connection: NWConnection
     private var receiveBuffer: Data
-    private var sendQueue: [ParsedJSON]
+    private var sendQueue: [JSON]
     private var isSending: Bool
     public var errorHandler: ((Error) -> Void)?
     public var receiveHandler: ((ParsedJSON) -> Void)?
@@ -29,7 +29,7 @@ public final class JSONConnection {
         connection.cancel()
     }
     
-    public func send(json: ParsedJSON) {
+    public func send(json: JSON) {
         sendQueue.append(json)
         _send()
     }
@@ -46,7 +46,7 @@ public final class JSONConnection {
         let json = sendQueue.removeFirst()
         
         let serializer = JSONSerializer()
-        let body = serializer.serialize(json.toJSON())
+        let body = serializer.serialize(json)
         
         let header = "length=\(body.count)\n\n"
         

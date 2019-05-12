@@ -2,7 +2,7 @@ import Foundation
 import SimExec
 
 public final class SimExecAgentTool {
-    public enum State {
+    public enum State : String, Codable {
         case ready
         case busy
     }

@@ -7,13 +7,16 @@ let package = Package(
     platforms: [.macOS(.v10_14)],
     products: [
         .library(name: "SimExec", targets: ["SimExec"]),
-        .executable(name: "sim-exec", targets: ["sim-exec"])
+        .executable(name: "sim-exec", targets: ["sim-exec"]),
+        .library(name: "SimExecAgent", targets: ["SimExecAgent"])
     ],
     dependencies: [
     ],
     targets: [
         .target(name: "SimExec", dependencies: []),
-        .target(name: "sim-exec", dependencies: ["SimExec"]),
         .testTarget(name: "SimExecTests", dependencies: ["SimExec"]),
+        .target(name: "sim-exec", dependencies: ["SimExec"]),
+        .target(name: "SimExecAgent", dependencies: ["SimExec"]),
+        .testTarget(name: "SimExecAgentTests", dependencies: ["SimExecAgent"])
     ]
 )

@@ -31,17 +31,10 @@ class ViewController : UIViewController {
 """
         try source.data(using: .utf8)!.write(to: sourceFile)
         
-        let args = [
-            "sim-exec",
-            "--source", sourceFile.path,
-            "--device", "F16240A8-B724-4724-AB34-3D54F9EE1B90",
-            "--keep-temps"
-        ]
-        try SimExecTool.main(args: args)
-    }
-    
-    func test2() throws {
-        let res = try Simctl.list()
-        dump(res)
+        let options = SimExecTool.Options(sourceFile: sourceFile,
+                                          simulatorDeviceUDID: "F16240A8-B724-4724-AB34-3D54F9EE1B90",
+                                          keepTemporaryFiles: true)
+        let tool = SimExecTool(options: options)
+        try tool.run()
     }
 }

@@ -5,12 +5,36 @@ public final class SimExecTool {
         public var sourceFile: URL
         public var simulatorDeviceUDID: String
         public var keepTemporaryFiles: Bool
+        
+        public init(sourceFile: URL,
+                    simulatorDeviceUDID: String,
+                    keepTemporaryFiles: Bool)
+        {
+            self.sourceFile = sourceFile
+            self.simulatorDeviceUDID = simulatorDeviceUDID
+            self.keepTemporaryFiles = keepTemporaryFiles
+        }
+    }
+    
+    public enum State {
+        case start
+        case build
+        case launch
+        case running
+        case complete
     }
     
     private let options: Options
     private let fileSystem: FileSystem
     private let logger: Logger
     private let resourceDirectory: URL
+    
+    public private(set) var state: State {
+        didSet {
+            stateHandler?(state)
+        }
+    }
+    public var stateHandler: ((State) -> Void)?
     
     private var projectDir: URL?
     private var buildDir: URL?
@@ -30,19 +54,10 @@ public final class SimExecTool {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appendingPathComponent("Resources")
+        self.state = State.start
     }
     
-    public func run() -> Never {
-        do {
-            try _run()
-        } catch {
-            logger.critical("\(error)")
-            exit(EXIT_FAILURE)
-        }
-        exit(EXIT_SUCCESS)
-    }
-    
-    private func _run() throws {
+    public func run() throws {
         defer {
             if !options.keepTemporaryFiles {
                 fileSystem.deleteKeepedTemporaryFiles()
@@ -89,6 +104,8 @@ public final class SimExecTool {
     }
     
     private func build() throws {
+        self.state = .build
+        
         try fm.changeCurrentDirectory(to: projectDir!)
         
         let sdks = try Xcodebuild.showSDKs()
@@ -121,6 +138,8 @@ public final class SimExecTool {
     }
     
     private func bootDevice() throws {
+        self.state = .launch
+        
         var device = try simctl!.status()
         if device.state == "Booted" {
             logger.debug("device is booted")
@@ -153,6 +172,8 @@ public final class SimExecTool {
         try simctl!.launch(appID: "simexec.TempApp",
                            outFile: outFile,
                            errorFile: errorFile)
+    
+        self.state = .running
     }
     
     private func takeScreenshots() throws {
@@ -168,12 +189,19 @@ public final class SimExecTool {
     private func terminateApp() throws {
         logger.debug("terminate app")
         try simctl!.terminate(appID: "simexec.TempApp")
+        
+        self.state = .complete
     }
     
-    public static func main(args: [String]) throws -> Never {
-        let options = try Options.parse(args: args)
-        let tool = SimExecTool(options: options)
-        tool.run()
+    public static func main(args: [String]) -> Never {
+        do {
+            let options = try Options.parse(args: args)
+            let tool = SimExecTool(options: options)
+            try tool.run()
+            exit(EXIT_SUCCESS)
+        } catch {
+            fatalError("\(error)")
+        }
     }
 }
 

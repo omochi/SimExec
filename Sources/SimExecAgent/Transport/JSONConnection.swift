@@ -1,25 +1,76 @@
 import Foundation
 import Network
 import SimExec
+import FineJSON
+import RichJSONParser
 
-public final class MessageConnection {
-    private let connection: NWConnection
-    private var buffer: Data
+public final class JSONConnection {
+    public let connection: NWConnection
+    private var receiveBuffer: Data
+    private var sendQueue: [ParsedJSON]
+    private var isSending: Bool
     public var errorHandler: ((Error) -> Void)?
+    public var receiveHandler: ((ParsedJSON) -> Void)?
+    public var closedHandler: (() -> Void)?
     
     public init(connection: NWConnection) {
         self.connection = connection
-        self.buffer = Data()
+        self.receiveBuffer = Data()
+        self.sendQueue = []
+        self.isSending = false
     }
     
     public func start(queue: DispatchQueue) {
-        receive()
-        
         connection.start(queue: queue)
+        receive()
     }
     
     public func close() {
         connection.cancel()
+    }
+    
+    public func send(json: ParsedJSON) {
+        sendQueue.append(json)
+        _send()
+    }
+    
+    private func _send() {
+        if isSending {
+            return
+        }
+        
+        if sendQueue.isEmpty {
+            return
+        }
+        
+        let json = sendQueue.removeFirst()
+        
+        let serializer = JSONSerializer()
+        let body = serializer.serialize(json.toJSON())
+        
+        let header = "length=\(body.count)\n\n"
+        
+        let data = header.data(using: .utf8)! + body
+        
+        isSending = true
+        
+        let completion: (Error?) -> Void = { [weak self] (error) in
+            guard let self = self else { return }
+            
+            self.isSending = false
+            
+            if let error = error {
+                self.emitError(error)
+                return
+            }
+            
+            self._send()
+        }
+        
+        connection.send(content: data,
+                        contentContext: .defaultStream,
+                        isComplete: false,
+                        completion: .contentProcessed(completion))
     }
 
     private func receive() {
@@ -34,7 +85,7 @@ public final class MessageConnection {
             }
             
             if let data = data {
-                self.buffer.append(data)
+                self.receiveBuffer.append(data)
                 do {
                     try self.parse()
                 } catch {
@@ -42,6 +93,14 @@ public final class MessageConnection {
                     return
                 }
             }
+            
+            if isFinished {
+                self.closedHandler?()
+                self.connection.cancel()
+                return
+            }
+            
+            self.receive()
         }
     }
     
@@ -57,11 +116,11 @@ public final class MessageConnection {
                 return
             }
         
-            guard let sepRange = buffer.firstRange(of: sep) else {
+            guard let sepRange = receiveBuffer.firstRange(of: sep) else {
                 return
             }
         
-            guard let header = String(data: buffer[..<sepRange.lowerBound],
+            guard let header = String(data: receiveBuffer[..<sepRange.lowerBound],
                                       encoding: .utf8) else
             {
                 throw MessageError("invalid data received")
@@ -88,14 +147,16 @@ public final class MessageConnection {
             let bodyStart = sepRange.upperBound
             let bodyEnd = bodyStart + length
             
-            if buffer.count < bodyEnd {
+            if receiveBuffer.count < bodyEnd {
                 return
             }
             
-            let body = buffer[bodyStart..<bodyEnd]
-            buffer.removeSubrange(..<bodyEnd)
+            let body = receiveBuffer[bodyStart..<bodyEnd]
+            receiveBuffer.removeSubrange(..<bodyEnd)
             
-            
+            let parser = try JSONParser(data: body)
+            let json = try parser.parse()
+            receiveHandler?(json)
         }
     }
     

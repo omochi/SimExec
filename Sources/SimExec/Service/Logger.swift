@@ -12,6 +12,10 @@ public final class Logger {
         log(type: .debug, message: message)
     }
     
+    public func error(_ message: String) {
+        log(type: .error, message: message)
+    }
+    
     public func critical(_ message: String) {
         log(type: .fault, message: message)
     }

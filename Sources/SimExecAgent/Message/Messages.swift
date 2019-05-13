@@ -22,6 +22,10 @@ extension MessageProtocol {
     }
 }
 
+public protocol RequestMessageProtocol : MessageProtocol {
+    var requestID: Int { get }
+}
+
 public protocol ResponseMessageProtocol : MessageProtocol {
     var requestID: Int { get }
 }
@@ -70,7 +74,7 @@ public struct RequestErrorResponse : ResponseMessageProtocol, ErrorBase {
     }
 }
 
-public struct StateRequest : MessageProtocol {
+public struct StateRequest : RequestMessageProtocol {
     public var requestID: Int
 }
 
@@ -79,7 +83,7 @@ public struct StateResponse : ResponseMessageProtocol {
     public var state: SimExecAgentTool.State
 }
 
-public struct AgentRequestRequest : MessageProtocol {
+public struct AgentRequestRequest : RequestMessageProtocol {
     public var requestID: Int
     public var request: SimExecAgentTool.Request
 }

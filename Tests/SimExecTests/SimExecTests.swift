@@ -1,6 +1,8 @@
 import XCTest
 import SimExec
 
+private let udid = "F16240A8-B724-4724-AB34-3D54F9EE1B90"
+
 final class SimExecTests: XCTestCase {
     var fs: FileSystem!
     
@@ -32,7 +34,7 @@ class ViewController : UIViewController {
         try source.data(using: .utf8)!.write(to: sourceFile)
         
         let options = SimExecTool.Options(sourceFile: sourceFile,
-                                          simulatorDeviceUDID: "F16240A8-B724-4724-AB34-3D54F9EE1B90",
+                                          simulatorDeviceUDID: udid,
                                           keepTemporaryFiles: true)
         let tool = SimExecTool(options: options)
         try tool.run()

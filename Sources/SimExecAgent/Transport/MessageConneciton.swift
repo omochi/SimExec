@@ -8,6 +8,7 @@ public final class MessageConnection {
     public var errorHandler: ((Error) -> Void)?
     public var closedHandler: (() -> Void)?
     public var receiveHandler: ((MessageProtocol) -> Void)?
+    public var connectedHandler: (() -> Void)?
     
     public init(connection: NWConnection) {
         self.connection = JSONConnection(connection: connection)
@@ -31,6 +32,9 @@ public final class MessageConnection {
                 self.connection.close()
                 self.errorHandler?(error)
             }
+        }
+        connection.connectedHandler = { [weak self] in
+            self?.connectedHandler?()
         }
         
         connection.start(queue: queue)

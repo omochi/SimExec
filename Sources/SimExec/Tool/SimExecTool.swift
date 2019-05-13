@@ -168,11 +168,11 @@ public final class SimExecTool {
         let dir = self.buildDir!
         try fm.changeCurrentDirectory(to: dir)
         
-        let outFile = dir.appendingPathComponent("out.txt")
-        let errorFile = dir.appendingPathComponent("error.txt")
+        self.outFile = dir.appendingPathComponent("out.txt")
+        self.errorFile = dir.appendingPathComponent("error.txt")
         try simctl!.launch(appID: "simexec.TempApp",
-                           outFile: outFile,
-                           errorFile: errorFile)
+                           outFile: outFile!,
+                           errorFile: errorFile!)
     
         self.state = .running
     }

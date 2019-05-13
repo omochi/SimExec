@@ -8,11 +8,8 @@ public protocol MessageProtocol : Codable {
 }
 
 public let messageTypes: [MessageProtocol.Type] = [
-    RequestErrorResponse.self,
-    StateRequest.self,
-    StateResponse.self,
+    AgentStateEvent.self,
     AgentRequestRequest.self,
-    AgentRequestStateEvent.self,
     AgentRequestResponse.self
 ]
 
@@ -70,37 +67,17 @@ public final class MessageEncoder {
     }
 }
 
-public struct RequestErrorResponse : ResponseMessageProtocol, ErrorBase {
-    public var requestID: Int
-    public var message: String
-    
-    public var description: String {
-        return message
-    }
-}
-
-public struct StateRequest : RequestMessageProtocol {
-    public var requestID: Int
-}
-
-public struct StateResponse : ResponseMessageProtocol {
-    public var requestID: Int
+public struct AgentStateEvent : MessageProtocol {
     public var state: SimExecAgentTool.State
 }
 
-public struct AgentRequestRequest : RequestMessageProtocol {
-    public var requestID: Int
+public struct AgentRequestRequest : MessageProtocol {
     public var request: SimExecAgentTool.Request
 }
 
-public struct AgentRequestStateEvent : ResponseMessageProtocol {
-    public var requestID: Int
-    public var state: SimExecTool.State
-}
-
-public struct AgentRequestResponse : ResponseMessageProtocol {
-    public var requestID: Int
-    public var response: SimExecAgentTool.Response
+public struct AgentRequestResponse : MessageProtocol {
+    public var response: SimExecAgentTool.Response?
+    public var error: String?
 }
 
 

@@ -4,7 +4,20 @@ import SimExec
 public final class SimExecAgentTool {
     public enum State : String, Codable {
         case ready
-        case busy
+        case start
+        case build
+        case launch
+        case running
+        
+        public init(from state: SimExecTool.State) {
+            switch state {
+            case .start: self = .start
+            case .build: self = .build
+            case .launch: self = .launch
+            case .running: self = .running
+            case .complete: self = .ready
+            }
+        }
     }
     
     public struct Request : Codable {
@@ -25,19 +38,24 @@ public final class SimExecAgentTool {
     }
     
     public let queue: DispatchQueue
-    private let adapter: SimExecAgentSocketAdapter
+    private var adapter: SimExecAgentSocketAdapter!
     private var execQueue: DispatchQueue?
     private let fileSystem: FileSystem
-    public private(set) var state: State
+    public private(set) var state: State {
+        didSet {
+            stateHandler?(state)
+        }
+    }
+    
+    public var stateHandler: ((State) -> Void)?
     
     public init(queue: DispatchQueue) throws {
         let tag = "SimExecAgent"
         self.queue = queue
         self.fileSystem = FileSystem(applicationName: tag)
         self.state = .ready
-        self.adapter = try SimExecAgentSocketAdapter()
-        adapter.agent = self
-        adapter.start()
+        
+        self.adapter = try SimExecAgentSocketAdapter(agent: self)
     }
     
     public func terminate() {
@@ -45,21 +63,20 @@ public final class SimExecAgentTool {
     }
 
     public func request(_ request: Request,
-                        stateHandler: @escaping (SimExecTool.State) -> Void,
                         completionHandler: @escaping (Result<Response, Error>) -> Void)
     {
         do {
             guard case .ready = self.state else {
-                throw MessageError("busy now")
+                throw MessageError("not ready now")
             }
             
-            self.state = .busy
+            self.state = .start
             
-            self.execQueue = DispatchQueue(label: "SimExecAgent.execQueue")
+            let execQueue = DispatchQueue(label: "SimExecAgent.execQueue")
+            self.execQueue = execQueue
             
-            self.execQueue!.async {
+            execQueue.async {
                 self.exec(request: request,
-                          stateHandler: stateHandler,
                           completionHandler: completionHandler)
             }
         } catch {
@@ -68,7 +85,6 @@ public final class SimExecAgentTool {
     }
     
     private func exec(request: Request,
-                      stateHandler: @escaping (SimExecTool.State) -> Void,
                       completionHandler: @escaping (Result<Response, Error>) -> Void)
     {
         do {
@@ -88,12 +104,8 @@ public final class SimExecAgentTool {
             
             tool.stateHandler = { (state) in
                 self.queue.async {
-                    stateHandler(state)
+                    self.state = State(from: state)
                 }
-            }
-            
-            queue.async {
-                stateHandler(.start)
             }
             
             try tool.run()
@@ -105,7 +117,6 @@ public final class SimExecAgentTool {
                                                      error: err)
             
             queue.async {
-                self.state = .ready
                 completionHandler(.success(response))
             }
         } catch {

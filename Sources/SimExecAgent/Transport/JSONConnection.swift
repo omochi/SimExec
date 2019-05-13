@@ -12,6 +12,7 @@ public final class JSONConnection {
     public var errorHandler: ((Error) -> Void)?
     public var receiveHandler: ((ParsedJSON) -> Void)?
     public var closedHandler: (() -> Void)?
+    public var connectedHandler: (() -> Void)?
     
     public init(connection: NWConnection) {
         self.connection = connection
@@ -27,6 +28,7 @@ public final class JSONConnection {
             case .failed(let error):
                 self.emitError(error)
             case .ready:
+                self.connectedHandler?()
                 self._send()
             default:
                 break

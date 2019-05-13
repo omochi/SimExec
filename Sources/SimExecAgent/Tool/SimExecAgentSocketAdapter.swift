@@ -6,7 +6,7 @@ import SimExec
 public final class SimExecAgentSocketAdapter {
     public static let port: NWEndpoint.Port = NWEndpoint.Port(35120)
     
-    internal weak var agent: SimExecAgentTool!
+    unowned let agent: SimExecAgentTool
     private var queue: DispatchQueue {
         return agent.queue
     }
@@ -16,7 +16,8 @@ public final class SimExecAgentSocketAdapter {
     
     public var errorHandler: ((Error) -> Void)?
     
-    public init() throws {
+    public init(agent: SimExecAgentTool) throws {
+        self.agent = agent
         self.logger = Logger(tag: "SimExecAgentSocketAdapter")
         self.nwListener = try NWListener(using: NWParameters(tls: nil),
                                          on: SimExecAgentSocketAdapter.port)
@@ -37,6 +38,16 @@ public final class SimExecAgentSocketAdapter {
         nwListener.newConnectionHandler = { [weak self] (connection) in
             self?.onNewConnection(connection)
         }
+        
+        agent.stateHandler = { [weak self] (state) in
+            guard let self = self else { return }
+            
+            for conn in self.connections {
+                self.send(conneciton: conn, message: AgentStateEvent(state: state))
+            }
+        }
+        
+        nwListener.start(queue: queue)
     }
     
     public func terminate() {
@@ -46,10 +57,6 @@ public final class SimExecAgentSocketAdapter {
         connections.removeAll()
         
         nwListener.cancel()
-    }
-    
-    public func start() {
-        nwListener.start(queue: queue)
     }
     
     private func onNewConnection(_ connection: NWConnection) {
@@ -80,10 +87,12 @@ public final class SimExecAgentSocketAdapter {
                 let conn = conn else { return }
             self.removeConneciton(conn)
         }
-        
+
         connections.append(conn)
         
         conn.start(queue: queue)
+        
+        send(conneciton: conn, message: AgentStateEvent(state: agent.state))
     }
     
     private func removeConneciton(_ connection: MessageConnection) {
@@ -99,33 +108,13 @@ public final class SimExecAgentSocketAdapter {
                            message: MessageProtocol) throws
     {
         switch message {
-        case let m as StateRequest:
-            let qid = m.requestID
-            let state = agent.state
-            self.send(conneciton: connection,
-                      message: StateResponse(requestID: qid,
-                                             state: state))
         case let m as AgentRequestRequest:
-            let qid = m.requestID
             agent.request(m.request,
-                          stateHandler:
-                { (state) in
-                    self.send(conneciton: connection,
-                              message: AgentRequestStateEvent(requestID: qid,
-                                                              state: state))
-            },
                           completionHandler:
-                { (result) in
-                    do {
-                        let result = try result.get()
-                        self.send(conneciton: connection,
-                                  message: AgentRequestResponse(requestID: qid,
-                                                                response: result))
-                    } catch {
-                        self.send(conneciton: connection,
-                                  message: RequestErrorResponse(requestID: qid,
-                                                                message: "\(error)"))
-                    }
+                { (response) in
+                    self.send(conneciton: connection,
+                              message: AgentRequestResponse(response: response.value,
+                                                            error: response.error.map { "\($0)" }))
             })
         default:
             throw MessageError("unsupported message: \(type(of: message))")

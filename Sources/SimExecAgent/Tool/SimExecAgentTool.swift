@@ -28,7 +28,7 @@ public final class SimExecAgentTool {
     private let adapter: SimExecAgentSocketAdapter
     private var execQueue: DispatchQueue?
     private let fileSystem: FileSystem
-    private var state: State
+    public private(set) var state: State
     
     public init(queue: DispatchQueue) throws {
         let tag = "SimExecAgent"
@@ -40,35 +40,30 @@ public final class SimExecAgentTool {
         adapter.start()
     }
     
-    public func state(handler: @escaping (State) -> Void)
-    {
-        queue.async {
-            handler(self.state)
-        }
+    public func terminate() {
+        self.adapter.terminate()
     }
-    
+
     public func request(_ request: Request,
                         stateHandler: @escaping (SimExecTool.State) -> Void,
                         completionHandler: @escaping (Result<Response, Error>) -> Void)
     {
-        queue.async {
-            do {
-                guard case .ready = self.state else {
-                    throw MessageError("busy now")
-                }
-                
-                self.state = .busy
-                
-                self.execQueue = DispatchQueue(label: "SimExecAgent.execQueue")
-                
-                self.execQueue!.async {
-                    self.exec(request: request,
-                              stateHandler: stateHandler,
-                              completionHandler: completionHandler)
-                }
-            } catch {
-                completionHandler(.failure(error))
+        do {
+            guard case .ready = self.state else {
+                throw MessageError("busy now")
             }
+            
+            self.state = .busy
+            
+            self.execQueue = DispatchQueue(label: "SimExecAgent.execQueue")
+            
+            self.execQueue!.async {
+                self.exec(request: request,
+                          stateHandler: stateHandler,
+                          completionHandler: completionHandler)
+            }
+        } catch {
+            completionHandler(.failure(error))
         }
     }
     

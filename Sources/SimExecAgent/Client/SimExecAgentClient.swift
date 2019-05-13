@@ -83,10 +83,10 @@ public final class SimExecAgentClient {
     private let connection: MessageConnection
     private let queue: DispatchQueue
     
-    public var connectedHandler: (() -> Void)?
-    
     private var lastRequestID: Int
     private var responseHandlers: [Int: ResponseHandler] = [:]
+    
+    public var errorHandler: ((Error) -> Void)?
     
     public init(host: String,
                 queue: DispatchQueue)
@@ -174,11 +174,11 @@ public final class SimExecAgentClient {
     }
     
     private func onConnectionError(_ error: Error) {
-        emitErrorToAllRequest(error)
+        handleError(error)
     }
     
     private func onConnectionClosed() {
-        emitErrorToAllRequest(MessageError("connection closed"))
+        handleError(MessageError("connection closed"))
     }
     
     private func onReceive(message: MessageProtocol) {
@@ -197,11 +197,12 @@ public final class SimExecAgentClient {
         }
     }
     
-    private func emitErrorToAllRequest(_ error: Error) {
+    private func handleError(_ error: Error) {
         let handlers = responseHandlers
         responseHandlers.removeAll()
         for (_, handler) in handlers {
             handler(.failure(error))
         }
+        errorHandler?(error)
     }
 }

@@ -39,6 +39,15 @@ public final class SimExecAgentSocketAdapter {
         }
     }
     
+    public func terminate() {
+        for connection in connections {
+            connection.close()
+        }
+        connections.removeAll()
+        
+        nwListener.cancel()
+    }
+    
     public func start() {
         nwListener.start(queue: queue)
     }
@@ -72,6 +81,8 @@ public final class SimExecAgentSocketAdapter {
             self.removeConneciton(conn)
         }
         
+        connections.append(conn)
+        
         conn.start(queue: queue)
     }
     
@@ -90,11 +101,10 @@ public final class SimExecAgentSocketAdapter {
         switch message {
         case let m as StateRequest:
             let qid = m.requestID
-            agent.state { (state) in
-                self.send(conneciton: connection,
-                          message: StateResponse(requestID: qid,
-                                                 state: state))
-            }
+            let state = agent.state
+            self.send(conneciton: connection,
+                      message: StateResponse(requestID: qid,
+                                             state: state))
         case let m as AgentRequestRequest:
             let qid = m.requestID
             agent.request(m.request,

@@ -7,6 +7,15 @@ public protocol MessageProtocol : Codable {
     static var kind: String { get }
 }
 
+public let messageTypes: [MessageProtocol.Type] = [
+    RequestErrorResponse.self,
+    StateRequest.self,
+    StateResponse.self,
+    AgentRequestRequest.self,
+    AgentRequestStateEvent.self,
+    AgentRequestResponse.self
+]
+
 extension MessageProtocol {
     public static var kind: String { return "\(self)" }
 }
@@ -41,14 +50,10 @@ private struct MessageEncodeJSON : Encodable {
 }
 
 public final class MessageDecoder {
-    public var types: [MessageProtocol.Type] = [
-        StateRequest.self
-    ]
-    
     public func decode(from json: ParsedJSON) throws -> MessageProtocol {
         let decoder = FineJSONDecoder()
         let message = try decoder.decode(MessageDecodeJSON.self, from: json)
-        guard let type = (types.first { $0.kind == message.kind }) else {
+        guard let type = (messageTypes.first { $0.kind == message.kind }) else {
             throw MessageError("unknown message kind: \(message.kind)")
         }
         return try type.decode(from: message.body)

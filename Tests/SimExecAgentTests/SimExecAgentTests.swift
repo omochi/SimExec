@@ -3,18 +3,32 @@ import SimExec
 import SimExecAgent
 
 final class SimExecAgentTests: XCTestCase {
-    var fs: FileSystem!
-    
-    override func setUp() {
-        fs = FileSystem(applicationName: "SimExecAgentTests")
-    }
-    
-    override func tearDown() {
-        fs.deleteKeepedTemporaryFiles()
-    }
+    var agent: SimExecAgentTool?
     
     func test1() throws {
-        let tool = SimExecAgentTool()
-        tool.start()
+        let exp = expectation(description: "")
+        
+        let agent = try SimExecAgentTool(queue: DispatchQueue.main)
+        self.agent = agent
+        
+        let client = SimExecAgentClient(host: "localhost", queue: DispatchQueue.main)
+        
+        client.errorHandler = { (error) in
+            XCTFail("\(error)")
+        }
+        
+        client.start()
+        
+        client.state { (state) in
+            do {
+                let state = try state.get()
+                XCTAssertEqual(state, SimExecAgentTool.State.ready)
+                exp.fulfill()
+            } catch {
+                XCTFail("\(error)")
+            }
+        }
+        
+        wait(for: [exp], timeout: 10)
     }
 }

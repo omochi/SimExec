@@ -7,7 +7,7 @@ public final class SimExecAgentTool {
         case busy
     }
     
-    public struct Request {
+    public struct Request : Codable {
         public var source: String
         public var udid: String
         
@@ -19,19 +19,25 @@ public final class SimExecAgentTool {
         }
     }
     
-    private let queue: DispatchQueue
+    public struct Response : Codable {
+        public var out: String
+        public var error: String
+    }
+    
+    public let queue: DispatchQueue
+    private let adapter: SimExecAgentSocketAdapter
     private var execQueue: DispatchQueue?
     private let fileSystem: FileSystem
     private var state: State
     
-    public init() {
+    public init(queue: DispatchQueue) throws {
         let tag = "SimExecAgent"
-        self.queue = DispatchQueue(label: tag)
+        self.queue = queue
         self.fileSystem = FileSystem(applicationName: tag)
         self.state = .ready
-    }
-    
-    public func start() {
+        self.adapter = try SimExecAgentSocketAdapter()
+        adapter.agent = self
+        adapter.start()
     }
     
     public func state(handler: @escaping (State) -> Void)
@@ -43,7 +49,7 @@ public final class SimExecAgentTool {
     
     public func request(_ request: Request,
                         stateHandler: @escaping (SimExecTool.State) -> Void,
-                        completionHandler: @escaping (Result<Void, Error>) -> Void)
+                        completionHandler: @escaping (Result<Response, Error>) -> Void)
     {
         queue.async {
             do {
@@ -68,7 +74,7 @@ public final class SimExecAgentTool {
     
     private func exec(request: Request,
                       stateHandler: @escaping (SimExecTool.State) -> Void,
-                      completionHandler: @escaping (Result<Void, Error>) -> Void)
+                      completionHandler: @escaping (Result<Response, Error>) -> Void)
     {
         do {
             let fs = FileSystem(applicationName: "SimExecAgentTool")
@@ -97,9 +103,15 @@ public final class SimExecAgentTool {
             
             try tool.run()
             
+            let out = try Data(contentsOf: tool.outFile!).toUTF8Robust()
+            let err = try Data(contentsOf: tool.errorFile!).toUTF8Robust()
+            
+            let response = SimExecAgentTool.Response(out: out,
+                                                     error: err)
+            
             queue.async {
                 self.state = .ready
-                completionHandler(.success(()))
+                completionHandler(.success(response))
             }
         } catch {
             queue.async {
@@ -109,10 +121,13 @@ public final class SimExecAgentTool {
         }
     }
     
-    public static func main(arguments: [String]) throws -> Never {
-        let tool = SimExecAgentTool()
-        tool.start()
-        dispatchMain()
+    public static func main(arguments: [String]) -> Never {
+        do {
+            _ = try SimExecAgentTool(queue: DispatchQueue.main)
+            dispatchMain()
+        } catch {
+            fatalError("\(error)")
+        }
     }
 }
 

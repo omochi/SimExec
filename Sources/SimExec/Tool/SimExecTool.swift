@@ -16,7 +16,7 @@ public final class SimExecTool {
         }
     }
     
-    public enum State {
+    public enum State : String, Codable {
         case start
         case build
         case launch
@@ -40,8 +40,9 @@ public final class SimExecTool {
     private var buildDir: URL?
     private var simctl: Simctl?
     private var appFile: URL?
-    private var appOutFile: URL?
-    private var appErrorFile: URL?
+    public private(set) var outFile: URL?
+    public private(set) var errorFile: URL?
+    public private(set) var screenShotFiles: [URL] = []
 
     public init(options: Options) {
         let tag = "SimExecTool"
@@ -183,6 +184,7 @@ public final class SimExecTool {
             let file = dir.appendingPathComponent("ss.\(i).png")
             logger.debug("take ss: \(file.path)")
             try simctl!.screenshot(file: file)
+            self.screenShotFiles.append(file)
         }
     }
     

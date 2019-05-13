@@ -40,7 +40,7 @@ public final class MessageConnection {
         connection.close()
     }
     
-    public func send<T: MessageProtocol>(message: T) throws {
+    public func send(message: MessageProtocol) throws {
         let encoder = MessageEncoder()
         let json = try encoder.encode(message: message)
         connection.send(json: json)
@@ -52,3 +52,4 @@ public final class MessageConnection {
         receiveHandler?(message)
     }
 }
+

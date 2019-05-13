@@ -8,7 +8,8 @@ let package = Package(
     products: [
         .library(name: "SimExec", targets: ["SimExec"]),
         .executable(name: "sim-exec", targets: ["sim-exec"]),
-        .library(name: "SimExecAgent", targets: ["SimExecAgent"])
+        .library(name: "SimExecAgent", targets: ["SimExecAgent"]),
+        .executable(name: "sim-exec-agent", targets: ["sim-exec-agent"])
     ],
     dependencies: [
         .package(url: "https://github.com/omochi/FineJSON", from: "1.11.0")
@@ -18,6 +19,7 @@ let package = Package(
         .testTarget(name: "SimExecTests", dependencies: ["SimExec"]),
         .target(name: "sim-exec", dependencies: ["SimExec"]),
         .target(name: "SimExecAgent", dependencies: ["SimExec", "FineJSON"]),
+        .target(name: "sim-exec-agent", dependencies: ["SimExecAgent"]),
         .testTarget(name: "SimExecAgentTests", dependencies: ["SimExecAgent"])
     ]
 )

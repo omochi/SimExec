@@ -21,6 +21,17 @@ public final class JSONConnection {
     }
     
     public func start(queue: DispatchQueue) {
+        connection.stateUpdateHandler = { [weak self] (state) in
+            guard let self = self else { return }
+            switch state {
+            case .failed(let error):
+                self.emitError(error)
+            case .ready:
+                self._send()
+            default:
+                break
+            }
+        }
         connection.start(queue: queue)
         receive()
     }
@@ -35,6 +46,10 @@ public final class JSONConnection {
     }
     
     private func _send() {
+        guard connection.state == .ready else {
+            return
+        }
+        
         if isSending {
             return
         }
@@ -99,7 +114,7 @@ public final class JSONConnection {
                 self.connection.cancel()
                 return
             }
-            
+
             self.receive()
         }
     }

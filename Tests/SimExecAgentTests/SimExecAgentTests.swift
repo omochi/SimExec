@@ -2,7 +2,8 @@ import XCTest
 import SimExec
 import SimExecAgent
 
-private let udid = "F16240A8-B724-4724-AB34-3D54F9EE1B90"
+//private let udid = "F16240A8-B724-4724-AB34-3D54F9EE1B90"
+private let uuid = "0C737A0A-2CFB-45FC-9A41-70155C98460D"
 
 final class SimExecAgentTests: XCTestCase {
     var agent: SimExecAgentTool?

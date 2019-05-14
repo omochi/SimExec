@@ -113,8 +113,7 @@ public final class SimExecAgentSocketAdapter {
                           completionHandler:
                 { (response) in
                     self.send(conneciton: connection,
-                              message: AgentRequestResponse(response: response.value,
-                                                            error: response.error.map { "\($0)" }))
+                              message: AgentRequestResponse(result: response))
             })
         default:
             throw MessageError("unsupported message: \(type(of: message))")

@@ -1,0 +1,25 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "FineJSON",
+        "repositoryURL": "https://github.com/omochi/FineJSON",
+        "state": {
+          "branch": null,
+          "revision": "bef9a6df31664ead6bf61d5d28634046e5cb1fbf",
+          "version": "1.12.0"
+        }
+      },
+      {
+        "package": "RichJSONParser",
+        "repositoryURL": "https://github.com/omochi/RichJSONParser.git",
+        "state": {
+          "branch": null,
+          "revision": "6df9b20c3b74da53b44049071d710dc671fb996e",
+          "version": "2.3.0"
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -45,15 +45,14 @@ public final class MessageConnection {
     }
     
     public func send(message: MessageProtocol) throws {
-        let encoder = MessageEncoder()
-        let json = try encoder.encode(message: message)
+        let container = MessageCodableContainer(message)
+        let json = try container.encodeToJSON()
         connection.send(json: json)
     }
     
     private func onReceive(json: ParsedJSON) throws {
-        let decoder = MessageDecoder()
-        let message = try decoder.decode(from: json)
-        receiveHandler?(message)
+        let container = try MessageCodableContainer.decode(from: json)
+        receiveHandler?(container.value)
     }
 }
 

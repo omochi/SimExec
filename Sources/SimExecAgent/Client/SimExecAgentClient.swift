@@ -2,9 +2,7 @@ import Foundation
 import Network
 import SimExec
 
-public final class SimExecAgentClient {
-    public typealias ResponseHandler = (Result<ResponseMessageProtocol, Error>) -> Void
-    
+public final class SimExecAgentClient {    
     private let host: String
     private let connection: MessageConnection
     private let queue: DispatchQueue
@@ -70,7 +68,7 @@ public final class SimExecAgentClient {
             self.state = m.state
         case let m as AgentRequestResponse:
             let h = requestCompletionHandler.take()
-            h?(Result(value: m.response, error: m.error.map { MessageError($0) }))
+            h?(m.result)
         default:
             handleError(MessageError("unknown message: \(type(of: message))"))
         }

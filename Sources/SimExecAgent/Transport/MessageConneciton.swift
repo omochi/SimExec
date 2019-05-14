@@ -10,6 +10,10 @@ public final class MessageConnection {
     public var closedHandler: (() -> Void)?
     public var receiveHandler: ((MessageProtocol) -> Void)?
     public var connectedHandler: (() -> Void)?
+    public var fileHandler: ((URL) -> Void)? {
+        get { return connection.fileHandler }
+        set { connection.fileHandler = newValue }
+    }
     
     public init(connection: NWConnection,
                 fileSystem: FileSystem) {
@@ -52,6 +56,12 @@ public final class MessageConnection {
         let json = try container.encodeToJSON()
         connection.send(json: json,
                         completionHandler: nil)
+    }
+    
+    public func send(file: URL,
+                     completionHandler: (() -> Void)?) throws {
+        connection.send(file: file,
+                        completionHandler: completionHandler)
     }
     
     private func onReceive(json: ParsedJSON) throws {

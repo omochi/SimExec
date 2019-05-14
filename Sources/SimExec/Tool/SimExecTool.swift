@@ -27,7 +27,6 @@ public final class SimExecTool {
     private let options: Options
     private let fileSystem: FileSystem
     private let logger: Logger
-    private let resourceDirectory: URL
     
     public private(set) var state: State {
         didSet {
@@ -49,12 +48,6 @@ public final class SimExecTool {
         self.options = options
         self.fileSystem = FileSystem(applicationName: tag)
         self.logger = Logger(tag: tag)
-        self.resourceDirectory = URL(fileURLWithPath: #file)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Resources")
         self.state = State.start
     }
     

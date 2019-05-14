@@ -21,6 +21,7 @@ public final class JSONConnection {
         public var sentSize: Int
         public var totalSize: Int?
         public var stream: InputStream?
+        public var completionHandler: (() -> Void)?
     }
     
     private struct FileReceive {
@@ -43,6 +44,7 @@ public final class JSONConnection {
     
     public var errorHandler: ((Error) -> Void)?
     public var receiveHandler: ((ParsedJSON) -> Void)?
+    public var fileHandler: ((URL) -> Void)?
     public var closedHandler: (() -> Void)?
     public var connectedHandler: (() -> Void)?
     
@@ -57,18 +59,7 @@ public final class JSONConnection {
         self.idPool = IDPool()
         self.fileSends = [:]
         self.fileReceives = [:]
-    }
-    
-    
-    private func update(fileSend: FileSend) {
-        fileSends[fileSend.id.id] = fileSend
-    }
-    
-    private func update(fileReceive: FileReceive) {
-        fileReceives[fileReceive.id] = fileReceive
-    }
-    
-    public func start(queue: DispatchQueue) {
+        
         connection.stateUpdateHandler = { [weak self] (state) in
             guard let self = self else { return }
             switch state {
@@ -81,6 +72,17 @@ public final class JSONConnection {
                 break
             }
         }
+    }
+    
+    private func update(fileSend: FileSend) {
+        fileSends[fileSend.id.id] = fileSend
+    }
+    
+    private func update(fileReceive: FileReceive) {
+        fileReceives[fileReceive.id] = fileReceive
+    }
+    
+    public func start(queue: DispatchQueue) {
         connection.start(queue: queue)
         receive()
     }
@@ -110,13 +112,15 @@ public final class JSONConnection {
         driveSending()
     }
     
-    public func send(file: URL)
+    public func send(file: URL,
+                     completionHandler: (() -> Void)?)
     {
         let fileSend = FileSend(id: idPool.create(),
                                 file: file,
                                 sentSize: 0,
                                 totalSize: nil,
-                                stream: nil)
+                                stream: nil,
+                                completionHandler: completionHandler)
         fileSends[fileSend.id.id] = fileSend
         let task = SendTask(content: .file(id: fileSend.id),
                             completionHandler: nil)
@@ -204,7 +208,6 @@ public final class JSONConnection {
                             "total": "\(fileSend.totalSize!)"
             ])
         
-        print("send \(fileSend.sentSize)/\(fileSend.totalSize!)")
         _send(data: data) { [weak self] () in
             guard let self = self else { return }
             
@@ -225,6 +228,7 @@ public final class JSONConnection {
                 }
                 
                 self.fileSends.removeValue(forKey: id)
+                fileSend.completionHandler?()
             }
         }
     }
@@ -310,17 +314,17 @@ public final class JSONConnection {
     
     private func parse() throws {
         while true {
-            let isFinished = try parseSingle()
-            
-            if isFinished {
-                break
+            let more = try parseSingle()
+            if more {
+                continue
             }
+            break
         }
     }
     
-    typealias Finished = Bool
+    typealias More = Bool
     
-    private func parseSingle() throws -> Finished {
+    private func parseSingle() throws -> More {
         let sep = "\n\n".data(using: .utf8)!
         
         if connection.state == .cancelled {
@@ -436,7 +440,6 @@ public final class JSONConnection {
         
         fileReceive.receivedSize += body.count
         precondition(fileReceive.receivedSize <= fileReceive.totalSize)
-        print("receive \(fileReceive.receivedSize)/\(fileReceive.totalSize)")
         update(fileReceive: fileReceive)
         
         if fileReceive.receivedSize == fileReceive.totalSize {
@@ -444,8 +447,8 @@ public final class JSONConnection {
             if let error = fileReceive.stream.streamError {
                 throw error
             }
-            print("\(fileReceive.file.path)")
             fileReceives.removeValue(forKey: id)
+            self.fileHandler?(fileReceive.file)
         }
     }
     

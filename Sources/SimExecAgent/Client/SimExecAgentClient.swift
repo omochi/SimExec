@@ -5,6 +5,7 @@ import SimExec
 public final class SimExecAgentClient {    
     private let host: String
     private let connection: MessageConnection
+    private let fileSystem: FileSystem
     private let queue: DispatchQueue
     
     public private(set) var state: SimExecAgentTool.State = .ready {
@@ -18,11 +19,11 @@ public final class SimExecAgentClient {
     private var requestCompletionHandler: ((Result<SimExecAgentTool.Response, Error>) -> Void)?
     
     public init(host: String,
-                queue: DispatchQueue,
-                fileSystem: FileSystem)
+                queue: DispatchQueue)
     {
         self.host = host
         self.queue = queue
+        self.fileSystem = FileSystem(applicationName: "SimExecAgentClient")
 
         let conn = NWConnection(host: NWEndpoint.Host(host),
                                 port: SimExecAgentSocketAdapter.port,

@@ -21,7 +21,8 @@ final class SimExecAgentTests: XCTestCase {
     func testFirstState() throws {
         let exp = expectation(description: "")
 
-        let client = SimExecAgentClient(host: "localhost", queue: .main)
+        let client = SimExecAgentClient(host: "localhost",
+                                        queue: .main)
         
         client.errorHandler = { (error) in
             XCTFail("\(error)")
@@ -40,7 +41,8 @@ final class SimExecAgentTests: XCTestCase {
     func testFullSuccess() throws {
         let exp = expectation(description: "")
         
-        let client = SimExecAgentClient(host: "localhost", queue: .main)
+        let client = SimExecAgentClient(host: "localhost",
+                                        queue: .main)
         
         client.errorHandler = { (error) in
             XCTFail("\(error)")

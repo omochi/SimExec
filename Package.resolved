@@ -1,0 +1,52 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "swift-nio",
+        "repositoryURL": "https://github.com/apple/swift-nio.git",
+        "state": {
+          "branch": null,
+          "revision": "0e37ada7cc6b68452716d706849b6868a2a77429",
+          "version": "2.1.0"
+        }
+      },
+      {
+        "package": "swift-nio-http-client",
+        "repositoryURL": "https://github.com/swift-server/swift-nio-http-client.git",
+        "state": {
+          "branch": "master",
+          "revision": "e0c169108b0e43add527f224b498de4cc5c31e88",
+          "version": null
+        }
+      },
+      {
+        "package": "swift-nio-ssl",
+        "repositoryURL": "https://github.com/apple/swift-nio-ssl.git",
+        "state": {
+          "branch": null,
+          "revision": "f9ac0c3486f8e9333e791caf135e3fe067e0e66c",
+          "version": "2.0.2"
+        }
+      },
+      {
+        "package": "nio-websocket-client",
+        "repositoryURL": "https://github.com/vapor/swift-nio-websocket-client.git",
+        "state": {
+          "branch": "master",
+          "revision": "2c6475a5c576117e55f283b67427d95fd545c0a3",
+          "version": null
+        }
+      },
+      {
+        "package": "Sword",
+        "repositoryURL": "https://github.com/Azoy/Sword.git",
+        "state": {
+          "branch": null,
+          "revision": "19d7815cf499bb2b32055ef4cd74b7d0314b8ef5",
+          "version": null
+        }
+      }
+    ]
+  },
+  "version": 1
+}

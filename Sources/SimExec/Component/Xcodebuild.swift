@@ -70,7 +70,8 @@ public struct Xcodebuild {
     
     public func build(destinationUDID: String) throws {
         let args = baseArgs() + [
-            "-destination", "id=\(destinationUDID)"
+            "-destination", "id=\(destinationUDID)",
+            "-quiet"
         ]
         
         var out = Data()

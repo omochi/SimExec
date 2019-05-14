@@ -3,7 +3,7 @@ import SimExec
 import SimExecAgent
 
 //private let udid = "F16240A8-B724-4724-AB34-3D54F9EE1B90"
-private let uuid = "0C737A0A-2CFB-45FC-9A41-70155C98460D"
+private let udid = "0C737A0A-2CFB-45FC-9A41-70155C98460D"
 
 final class SimExecAgentTests: XCTestCase {
     var agent: SimExecAgentTool?
@@ -89,7 +89,7 @@ class ViewController : UIViewController {
             }
         }
         
-        wait(for: [exp], timeout: 60)
+        wait(for: [exp], timeout: 300)
     }
     
     func testBuildFailure() {
@@ -131,13 +131,17 @@ class ViewController : UIViewController {
                 _ = try response.get()
                 XCTFail("broken source passed")
             } catch {
-                print(error)
+                
                 XCTAssertEqual(stateIndex, 4)
+
+                let str = "\(error)"
+                XCTAssertTrue(str.contains("viewDidFooBar"))
+
                 exp.fulfill()
             }
         }
         
-        wait(for: [exp], timeout: 60)
+        wait(for: [exp], timeout: 300)
     }
     
     func testConflictClients() {
@@ -212,6 +216,6 @@ class ViewController : UIViewController {
             }
         }
         
-        wait(for: [exp], timeout: 60)
+        wait(for: [exp], timeout: 300)
     }
 }

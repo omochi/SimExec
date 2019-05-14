@@ -12,7 +12,7 @@ let package = Package(
         .executable(name: "sim-exec-agent", targets: ["sim-exec-agent"])
     ],
     dependencies: [
-        .package(url: "https://github.com/omochi/FineJSON", from: "1.12.0")
+        .package(url: "https://github.com/omochi/FineJSON", from: "1.13.0")
     ],
     targets: [
         .target(name: "SimExec", dependencies: ["FineJSON"]),

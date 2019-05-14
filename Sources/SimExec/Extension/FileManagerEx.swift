@@ -13,6 +13,10 @@ extension FileManager {
         return ret
     }
     
+    public func attributesOfItem(at url: URL) throws -> [FileAttributeKey : Any] {
+        return try attributesOfItem(atPath: url.path)
+    }
+    
     public func copyItem(at srcURL: URL, to dstURL: URL, overwrite: Bool) throws {
         if overwrite, fileExists(at: dstURL) {
             try removeItem(at: dstURL)

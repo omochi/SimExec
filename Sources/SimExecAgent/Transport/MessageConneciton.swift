@@ -47,7 +47,8 @@ public final class MessageConnection {
     public func send(message: MessageProtocol) throws {
         let container = MessageCodableContainer(message)
         let json = try container.encodeToJSON()
-        connection.send(json: json)
+        connection.send(json: json,
+                        completionHandler: nil)
     }
     
     private func onReceive(json: ParsedJSON) throws {

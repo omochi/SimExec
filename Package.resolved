@@ -39,10 +39,10 @@
       },
       {
         "package": "Sword",
-        "repositoryURL": "https://github.com/Azoy/Sword.git",
+        "repositoryURL": "https://github.com/omochi/Sword.git",
         "state": {
-          "branch": null,
-          "revision": "19d7815cf499bb2b32055ef4cd74b7d0314b8ef5",
+          "branch": "patch",
+          "revision": "5e1a904b13492d4b9dfb2c0541da0a460f59767a",
           "version": null
         }
       }

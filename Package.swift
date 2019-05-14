@@ -7,7 +7,7 @@ let package = Package(
     platforms: [.macOS(.v10_14)],
     dependencies: [
         .package(url: "https://github.com/omochi/FineJSON", from: "1.13.0"),
-        .package(url: "https://github.com/Azoy/Sword.git", .revision("19d7815cf499bb2b32055ef4cd74b7d0314b8ef5"))
+        .package(url: "https://github.com/omochi/Sword.git", .branch("patch"))
     ],
     targets: [
         .target(name: "SimExec", dependencies: ["FineJSON"]),

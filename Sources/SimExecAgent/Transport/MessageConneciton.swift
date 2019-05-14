@@ -59,7 +59,7 @@ public final class MessageConnection {
     }
     
     public func send(file: URL,
-                     completionHandler: (() -> Void)?) throws {
+                     completionHandler: (() -> Void)?) {
         connection.send(file: file,
                         completionHandler: completionHandler)
     }

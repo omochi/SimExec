@@ -14,6 +14,7 @@ public final class SimExecAgentClient {
         }
     }
     public var stateHandler: ((SimExecAgentTool.State) -> Void)?
+    public var screenshotHandler: ((URL) -> Void)?
     public var errorHandler: ((Error) -> Void)?
     
     private var requestCompletionHandler: ((Result<SimExecAgentTool.Response, Error>) -> Void)?
@@ -39,6 +40,9 @@ public final class SimExecAgentClient {
         }
         connection.receiveHandler = { [weak self] (message) in
             self?.onReceive(message: message)
+        }
+        connection.fileHandler = { [weak self] (file) in
+            self?.onFile(file)
         }
     }
 
@@ -75,6 +79,10 @@ public final class SimExecAgentClient {
         default:
             handleError(MessageError("unknown message: \(type(of: message))"))
         }
+    }
+    
+    private func onFile(_ file: URL) {
+        screenshotHandler?(file)
     }
     
     private func handleError(_ error: Error) {

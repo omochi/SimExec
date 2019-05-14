@@ -34,6 +34,7 @@ public final class SimExecTool {
         }
     }
     public var stateHandler: ((State) -> Void)?
+    public var screenshotHandler: ((URL) -> Void)?
     
     private var projectDir: URL?
     private var buildDir: URL?
@@ -41,7 +42,7 @@ public final class SimExecTool {
     private var appFile: URL?
     public private(set) var outFile: URL?
     public private(set) var errorFile: URL?
-    public private(set) var screenShotFiles: [URL] = []
+    public private(set) var screenshotFiles: [URL] = []
 
     public init(options: Options) {
         let tag = "SimExecTool"
@@ -177,7 +178,8 @@ public final class SimExecTool {
             let file = dir.appendingPathComponent("ss.\(i).png")
             logger.debug("take ss: \(file.path)")
             try simctl!.screenshot(file: file)
-            self.screenShotFiles.append(file)
+            screenshotFiles.append(file)
+            screenshotHandler?(file)
         }
     }
     

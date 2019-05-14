@@ -15,6 +15,9 @@ public final class SimExecAgentSocketAdapter {
     private let nwListener: NWListener
     private var connections: [MessageConnection]
     
+    private var fileSendingCount: Int = 0
+    private var pendingAgentResponses: [(MessageConnection, AgentRequestResponse)] = []
+    
     public var errorHandler: ((Error) -> Void)?
     
     public init(agent: SimExecAgentTool,
@@ -48,6 +51,13 @@ public final class SimExecAgentSocketAdapter {
             
             for conn in self.connections {
                 self.send(conneciton: conn, message: AgentStateEvent(state: state))
+            }
+        }
+        agent.screenshotHandler = { [weak self] (file) in
+            guard let self = self else { return }
+            
+            for conn in self.connections {
+                self.send(connection: conn, file: file)
             }
         }
         
@@ -86,7 +96,7 @@ public final class SimExecAgentSocketAdapter {
                 self.removeConneciton(conn)
             }
         }
-        
+
         conn.closedHandler = { [weak self, weak conn] in
             guard let self = self,
                 let conn = conn else { return }
@@ -117,12 +127,25 @@ public final class SimExecAgentSocketAdapter {
             agent.request(m.request,
                           completionHandler:
                 { (response) in
-                    self.send(conneciton: connection,
-                              message: AgentRequestResponse(result: response))
+                    self.pendingAgentResponses.append((connection, AgentRequestResponse(result: response)))
+                    self.maySendAgentResponse()
             })
         default:
             throw MessageError("unsupported message: \(type(of: message))")
         }
+    }
+    
+    private func maySendAgentResponse() {
+        if fileSendingCount > 0 {
+            print("wait!")
+            return
+        }
+        
+        for (conn, resp) in pendingAgentResponses {
+            self.send(conneciton: conn,
+                      message: resp)
+        }
+        pendingAgentResponses.removeAll()
     }
     
     private func send(conneciton: MessageConnection,
@@ -131,11 +154,30 @@ public final class SimExecAgentSocketAdapter {
         guard isValid(connection: conneciton) else {
             return
         }
+        
         do {
             try conneciton.send(message: message)
         } catch {
             logger.error("\(error)")
             removeConneciton(conneciton)
         }
+    }
+    
+    private func send(connection: MessageConnection,
+                      file: URL)
+    {
+        guard isValid(connection: connection) else {
+            return
+        }
+        
+        fileSendingCount += 1
+        
+        connection.send(file: file, completionHandler: { [weak self] in
+            guard let self = self else { return }
+            
+            self.fileSendingCount -= 1
+            
+            self.maySendAgentResponse()
+        })
     }
 }

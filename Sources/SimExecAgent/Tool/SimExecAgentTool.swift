@@ -48,6 +48,7 @@ public final class SimExecAgentTool {
     }
     
     public var stateHandler: ((State) -> Void)?
+    public var screenshotHandler: ((URL) -> Void)?
     
     public init(queue: DispatchQueue) throws {
         let tag = "SimExecAgent"
@@ -106,6 +107,11 @@ public final class SimExecAgentTool {
             tool.stateHandler = { (state) in
                 self.queue.async {
                     self.state = State(from: state)
+                }
+            }
+            tool.screenshotHandler = { (file) in
+                self.queue.async {
+                    self.screenshotHandler?(file)
                 }
             }
             

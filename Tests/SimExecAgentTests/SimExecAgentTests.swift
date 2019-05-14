@@ -64,6 +64,14 @@ final class SimExecAgentTests: XCTestCase {
             stateIndex += 1
         }
         
+        client.screenshotHandler = { (file) in
+            guard let image = NSImage(contentsOf: file) else {
+                XCTFail("broken image")
+                return
+            }
+            print(image.size)
+        }
+        
         let source = """
 import UIKit
 class ViewController : UIViewController {

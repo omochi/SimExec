@@ -207,7 +207,6 @@ public final class JSONConnection {
                             "offset": "\(fileSend.sentSize)",
                             "total": "\(fileSend.totalSize!)"
             ])
-        
         _send(data: data) { [weak self] () in
             guard let self = self else { return }
             
@@ -367,7 +366,7 @@ public final class JSONConnection {
         }
         
         let body = receiveBuffer[bodyStart..<bodyEnd]
-        receiveBuffer.removeSubrange(..<bodyEnd)
+        receiveBuffer = Data(receiveBuffer[bodyEnd...])
         
         if let fileIDStr = fieldMap["file"],
             let fileID = Int(fileIDStr)

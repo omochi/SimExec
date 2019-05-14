@@ -1,6 +1,7 @@
 import Foundation
 import Network
 import RichJSONParser
+import SimExec
 
 public final class MessageConnection {
     private let connection: JSONConnection
@@ -10,8 +11,10 @@ public final class MessageConnection {
     public var receiveHandler: ((MessageProtocol) -> Void)?
     public var connectedHandler: (() -> Void)?
     
-    public init(connection: NWConnection) {
-        self.connection = JSONConnection(connection: connection)
+    public init(connection: NWConnection,
+                fileSystem: FileSystem) {
+        self.connection = JSONConnection(connection: connection,
+                                         fileSystem: fileSystem)
     }
     
     public func start(queue: DispatchQueue) {

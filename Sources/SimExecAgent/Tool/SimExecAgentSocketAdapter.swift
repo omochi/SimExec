@@ -7,6 +7,7 @@ public final class SimExecAgentSocketAdapter {
     public static let port: NWEndpoint.Port = NWEndpoint.Port(35120)
     
     unowned let agent: SimExecAgentTool
+    private let fileSystem: FileSystem
     private var queue: DispatchQueue {
         return agent.queue
     }
@@ -16,8 +17,11 @@ public final class SimExecAgentSocketAdapter {
     
     public var errorHandler: ((Error) -> Void)?
     
-    public init(agent: SimExecAgentTool) throws {
+    public init(agent: SimExecAgentTool,
+                fileSystem: FileSystem) throws
+    {
         self.agent = agent
+        self.fileSystem = fileSystem
         self.logger = Logger(tag: "SimExecAgentSocketAdapter")
         self.nwListener = try NWListener(using: NWParameters(tls: nil),
                                          on: SimExecAgentSocketAdapter.port)
@@ -60,7 +64,8 @@ public final class SimExecAgentSocketAdapter {
     }
     
     private func onNewConnection(_ connection: NWConnection) {
-        let conn = MessageConnection(connection: connection)
+        let conn = MessageConnection(connection: connection,
+                                     fileSystem: fileSystem)
         
         conn.errorHandler = { [weak self, weak conn] (error) in
             guard let self = self,

@@ -55,7 +55,8 @@ public final class SimExecAgentTool {
         self.fileSystem = FileSystem(applicationName: tag)
         self.state = .ready
         
-        self.adapter = try SimExecAgentSocketAdapter(agent: self)
+        self.adapter = try SimExecAgentSocketAdapter(agent: self,
+                                                     fileSystem: fileSystem)
     }
     
     public func terminate() {

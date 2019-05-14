@@ -18,7 +18,8 @@ public final class SimExecAgentClient {
     private var requestCompletionHandler: ((Result<SimExecAgentTool.Response, Error>) -> Void)?
     
     public init(host: String,
-                queue: DispatchQueue)
+                queue: DispatchQueue,
+                fileSystem: FileSystem)
     {
         self.host = host
         self.queue = queue
@@ -26,7 +27,8 @@ public final class SimExecAgentClient {
         let conn = NWConnection(host: NWEndpoint.Host(host),
                                 port: SimExecAgentSocketAdapter.port,
                                 using: NWParameters(tls: nil))
-        self.connection = MessageConnection(connection: conn)
+        self.connection = MessageConnection(connection: conn,
+                                            fileSystem: fileSystem)
         
         connection.errorHandler = { [weak self] (error) in
             self?.onConnectionError(error)

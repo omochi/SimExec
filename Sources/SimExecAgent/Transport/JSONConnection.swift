@@ -23,25 +23,49 @@ public final class JSONConnection {
         public var stream: InputStream?
     }
     
+    private struct FileReceive {
+        public var id: Int
+        public var file: URL
+        public var receivedSize: Int
+        public var totalSize: Int
+        public var stream: OutputStream
+    }
+    
     public let connection: NWConnection
+    private let fileSystem: FileSystem
     private var receiveBuffer: Data
     private var sendQueue: [SendTask]
     private var isSending: Bool
     private let idPool: IDPool
     private var fileSends: [Int: FileSend]
+    private var receiveDir: URL?
+    private var fileReceives: [Int: FileReceive]
     
     public var errorHandler: ((Error) -> Void)?
     public var receiveHandler: ((ParsedJSON) -> Void)?
     public var closedHandler: (() -> Void)?
     public var connectedHandler: (() -> Void)?
     
-    public init(connection: NWConnection) {
+    public init(connection: NWConnection,
+                fileSystem: FileSystem)
+    {
         self.connection = connection
+        self.fileSystem = fileSystem
         self.receiveBuffer = Data()
         self.sendQueue = []
         self.isSending = false
         self.idPool = IDPool()
         self.fileSends = [:]
+        self.fileReceives = [:]
+    }
+    
+    
+    private func update(fileSend: FileSend) {
+        fileSends[fileSend.id.id] = fileSend
+    }
+    
+    private func update(fileReceive: FileReceive) {
+        fileReceives[fileReceive.id] = fileReceive
     }
     
     public func start(queue: DispatchQueue) {
@@ -70,6 +94,11 @@ public final class JSONConnection {
             }
         }
         fileSends.removeAll()
+        
+        if let dir = receiveDir {
+            _ = try? fm.removeItem(at: dir)
+            receiveDir = nil
+        }
     }
     
     public func send(json: JSON,
@@ -162,6 +191,9 @@ public final class JSONConnection {
             fileSend.stream!.read(buf.bindMemory(to: UInt8.self).baseAddress!,
                                   maxLength: sendSize)
         }
+        if let error = fileSend.stream!.streamError {
+            throw error
+        }
         precondition(sendSize == streamReadSize)
         
         let data = build(body: chunk,
@@ -171,6 +203,8 @@ public final class JSONConnection {
                             "offset": "\(fileSend.sentSize)",
                             "total": "\(fileSend.totalSize!)"
             ])
+        
+        print("send \(fileSend.sentSize)/\(fileSend.totalSize!)")
         _send(data: data) { [weak self] () in
             guard let self = self else { return }
             
@@ -185,15 +219,16 @@ public final class JSONConnection {
                                     completionHandler: nil)
                 self.sendQueue.append(task)
             } else {
+                fileSend.stream!.close()
+                if let error = fileSend.stream!.streamError {
+                    throw error
+                }
+                
                 self.fileSends.removeValue(forKey: id)
             }
         }
     }
-    
-    private func update(fileSend: FileSend) {
-        fileSends[fileSend.id.id] = fileSend
-    }
-    
+
     private func build(body: Data,
                        fields: [String: String]) -> Data
     {
@@ -274,53 +309,143 @@ public final class JSONConnection {
     }
     
     private func parse() throws {
-        let sep = "\n\n".data(using: .utf8)!
         while true {
-            if connection.state == .cancelled {
-                return
+            let isFinished = try parseSingle()
+            
+            if isFinished {
+                break
             }
+        }
+    }
+    
+    typealias Finished = Bool
+    
+    private func parseSingle() throws -> Finished {
+        let sep = "\n\n".data(using: .utf8)!
         
-            guard let sepRange = receiveBuffer.firstRange(of: sep) else {
-                return
-            }
+        if connection.state == .cancelled {
+            return false
+        }
         
-            guard let header = String(data: receiveBuffer[..<sepRange.lowerBound],
-                                      encoding: .utf8) else
-            {
-                throw MessageError("invalid data received")
+        guard let sepRange = receiveBuffer.firstRange(of: sep) else {
+            return false
+        }
+        
+        guard let header = String(data: receiveBuffer[..<sepRange.lowerBound],
+                                  encoding: .utf8) else
+        {
+            throw MessageError("invalid data received")
+        }
+        
+        let lines = header.components(separatedBy: "\n")
+        let fields = lines.compactMap { (line: String) -> (String, String)? in
+            guard let eqPos = line.range(of: "=") else {
+                return nil
             }
             
-            let lines = header.components(separatedBy: "\n")
-            let fields = lines.compactMap { (line: String) -> (String, String)? in
-                guard let eqPos = line.range(of: "=") else {
-                    return nil
-                }
-                
-                let key = String(line[..<eqPos.lowerBound])
-                let value = String(line[eqPos.upperBound...])
-                return (key, value)
-            }
-            let fieldMap: [String: String] = Dictionary(fields, uniquingKeysWith: { $1 })
-            
-            guard let lengthStr = fieldMap["length"],
-                let length = Int(lengthStr) else
-            {
-                throw MessageError("no length")
-            }
-            
-            let bodyStart = sepRange.upperBound
-            let bodyEnd = bodyStart + length
-            
-            if receiveBuffer.count < bodyEnd {
-                return
-            }
-            
-            let body = receiveBuffer[bodyStart..<bodyEnd]
-            receiveBuffer.removeSubrange(..<bodyEnd)
-            
+            let key = String(line[..<eqPos.lowerBound])
+            let value = String(line[eqPos.upperBound...])
+            return (key, value)
+        }
+        let fieldMap: [String: String] = Dictionary(fields, uniquingKeysWith: { $1 })
+        
+        guard let lengthStr = fieldMap["length"],
+            let length = Int(lengthStr) else
+        {
+            throw MessageError("no length")
+        }
+        
+        let bodyStart = sepRange.upperBound
+        let bodyEnd = bodyStart + length
+        
+        if receiveBuffer.count < bodyEnd {
+            return false
+        }
+        
+        let body = receiveBuffer[bodyStart..<bodyEnd]
+        receiveBuffer.removeSubrange(..<bodyEnd)
+        
+        if let fileIDStr = fieldMap["file"],
+            let fileID = Int(fileIDStr)
+        {
+            try process(fileID: fileID,
+                        body: body,
+                        header: fieldMap)
+            return true
+        } else {
             let parser = try JSONParser(data: body)
             let json = try parser.parse()
             receiveHandler?(json)
+            
+            return true
+        }
+    }
+    
+    private func process(fileID id: Int,
+                         body: Data,
+                         header: [String: String]) throws
+    {
+        guard let name = header["name"],
+            let offsetStr = header["offset"],
+            let offset = Int(offsetStr),
+            let totalStr = header["total"],
+            let total = Int(totalStr) else
+        {
+            throw MessageError("invalid file header: \(header)")
+        }
+        
+        if receiveDir == nil {
+            let name = "JSONConnection/receiveDir"
+            self.receiveDir = try fileSystem.makeTemporaryDirectory(name: name,
+                                                                    deleteAfter: true)
+        }
+        
+        if fileReceives[id] == nil {
+            let file = receiveDir!
+                .appendingPathComponent(name)
+            _ = try? fm.removeItem(at: file)
+            
+            guard let stream = OutputStream(url: file, append: false) else {
+                throw MessageError("OutputStream init failed: \(file.path)")
+            }
+            stream.open()
+            if let error = stream.streamError {
+                throw error
+            }
+            let fileReceive = FileReceive(id: id,
+                                          file: file,
+                                          receivedSize: 0,
+                                          totalSize: total,
+                                          stream: stream)
+            guard offset == 0 else {
+                throw MessageError("first offset not 0: \(offset)")
+            }
+            update(fileReceive: fileReceive)
+        }
+        
+        var fileReceive = fileReceives[id]!
+        
+        let streamWrittenSize = body.withUnsafeBytes { (buf) -> Int in
+            fileReceive.stream.write(buf.bindMemory(to: UInt8.self).baseAddress!,
+                                     maxLength: body.count)
+        }
+        if let error = fileReceive.stream.streamError {
+            throw error
+        }
+        precondition(streamWrittenSize == body.count)
+        
+        fileReceive.receivedSize += body.count
+        precondition(fileReceive.receivedSize <= fileReceive.totalSize)
+        print("receive \(fileReceive.receivedSize)/\(fileReceive.totalSize)")
+        update(fileReceive: fileReceive)
+        
+        if fileReceive.receivedSize == fileReceive.totalSize {
+            fileReceive.stream.close()
+            if let error = fileReceive.stream.streamError {
+                throw error
+            }
+            print("\(fileReceive.file.path)")
+            fileReceives.removeValue(forKey: id)
         }
     }
     

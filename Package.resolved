@@ -65,12 +65,30 @@
         }
       },
       {
+        "package": "FineJSON",
+        "repositoryURL": "https://github.com/omochi/FineJSON",
+        "state": {
+          "branch": null,
+          "revision": "ead7b3610d9ad5cbc5f483032352e46ff4e41605",
+          "version": "1.13.0"
+        }
+      },
+      {
         "package": "Random",
         "repositoryURL": "https://github.com/vapor/random.git",
         "state": {
           "branch": null,
           "revision": "d7c4397d125caba795d14d956efacfe2a27a63d0",
           "version": "1.2.0"
+        }
+      },
+      {
+        "package": "RichJSONParser",
+        "repositoryURL": "https://github.com/omochi/RichJSONParser.git",
+        "state": {
+          "branch": null,
+          "revision": "bdd459a9c1d4b7415be7a0836ee6f3224522de21",
+          "version": "2.3.1"
         }
       },
       {

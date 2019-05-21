@@ -42,6 +42,10 @@ public final class JSONConnection {
     private var receiveDir: URL?
     private var fileReceives: [Int: FileReceive]
     
+    public var timeout: TimeInterval? = 3
+    
+    private var timeoutWork: DispatchWorkItem?
+    
     public var errorHandler: ((Error) -> Void)?
     public var receiveHandler: ((ParsedJSON) -> Void)?
     public var fileHandler: ((URL) -> Void)?
@@ -64,8 +68,14 @@ public final class JSONConnection {
             guard let self = self else { return }
             switch state {
             case .failed(let error):
+                self.timeoutWork?.cancel()
+                self.timeoutWork = nil
+                
                 self.emitError(error)
             case .ready:
+                self.timeoutWork?.cancel()
+                self.timeoutWork = nil
+                
                 self.connectedHandler?()
                 self.driveSending()
             default:
@@ -83,11 +93,23 @@ public final class JSONConnection {
     }
     
     public func start(queue: DispatchQueue) {
+        if let timeout = self.timeout {
+            let timeoutWork = DispatchWorkItem { [weak self] in
+                guard let self = self else { return }
+                
+                self.emitError(MessageError("connection timeout"))
+            }
+            self.timeoutWork = timeoutWork
+            queue.asyncAfter(deadline: DispatchTime.now() + timeout, execute: timeoutWork)
+        }
         connection.start(queue: queue)
         receive()
     }
     
     public func close() {
+        timeoutWork?.cancel()
+        timeoutWork = nil
+        
         connection.cancel()
         
         for fileSend in fileSends.values {

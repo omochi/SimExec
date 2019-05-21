@@ -1,10 +1,10 @@
 import Foundation
 import SimExec
-import Sword
+import SwiftDiscord
 
-public final class SimExecDiscordTool {
+public final class SimExecDiscordTool : DiscordClientDelegate {
     private let queue: DispatchQueue
-    private let discord: Sword
+    private var discord: DiscordClient!
     
     public init(queue: DispatchQueue) throws {
         self.queue = queue
@@ -14,30 +14,28 @@ public final class SimExecDiscordTool {
             throw MessageError("no DISCORD_TOKEN")
         }
         
-        var options = Options()
-        options.logging = true
-        options.transportCompression = false
-        discord = Sword(token: token, options: options)
-
-        discord.on.guildAvailable = { [weak self] (guild) in
-            guard let self = self else {
-                return
-            }
-
-            print(guild)
-        }
-        discord.on.ready = { [weak self] (user) in
-            guard let self = self else {
-                return
-            }
-            
-            print(user)
-        }
+        discord = DiscordClient(token: DiscordToken(stringLiteral: token),
+                                delegate: self)
+        discord.handleQueue = queue
+        
         discord.connect()
     }
     
     deinit {
         print("deinit")
+    }
+    
+    public func client(_ client: DiscordClient, didCreateMessage message: DiscordMessage) {
+        guard let botUser = client.user,
+            !message.author.bot,
+            !message.mentionEveryone,
+            !message.pinned,
+            (message.mentions.contains { $0.id == botUser.id }) else
+        {
+            return
+        }
+        
+        print(message.content)
     }
     
     public static func main(arguments: [String]) {

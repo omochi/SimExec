@@ -7,7 +7,7 @@ let package = Package(
     platforms: [.macOS(.v10_14)],
     dependencies: [
         .package(url: "https://github.com/omochi/FineJSON", from: "1.13.0"),
-        .package(url: "https://github.com/omochi/Sword.git", .branch("patch"))
+        .package(url: "https://github.com/nuclearace/SwiftDiscord", .branch("development"))
     ],
     targets: [
         .target(name: "SimExec", dependencies: ["FineJSON"]),
@@ -16,7 +16,7 @@ let package = Package(
         .target(name: "SimExecAgent", dependencies: ["SimExec", "FineJSON"]),
         .target(name: "sim-exec-agent", dependencies: ["SimExecAgent"]),
         .testTarget(name: "SimExecAgentTests", dependencies: ["SimExecAgent"]),
-        .target(name: "SimExecDiscord", dependencies: ["SimExecAgent", "Sword"]),
+        .target(name: "SimExecDiscord", dependencies: ["SimExecAgent", "SwiftDiscord"]),
         .target(name: "sim-exec-discord", dependencies: ["SimExecDiscord"])
     ]
 )

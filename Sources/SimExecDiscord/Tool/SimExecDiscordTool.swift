@@ -1,10 +1,13 @@
 import Foundation
 import SimExec
+import SimExecAgent
 import SwiftDiscord
 
 public final class SimExecDiscordTool : DiscordClientDelegate {
     private let queue: DispatchQueue
     private var discord: DiscordClient!
+    
+    private var simExec: SimExecAgentClient?
     
     public init(queue: DispatchQueue) throws {
         self.queue = queue
@@ -35,7 +38,11 @@ public final class SimExecDiscordTool : DiscordClientDelegate {
             return
         }
         
-        print(message.content)
+        guard let cm = ControlMessage.parse(message.content) else {
+            return
+        }
+        
+        print(cm.code)
     }
     
     public static func main(arguments: [String]) {

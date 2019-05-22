@@ -1,11 +1,20 @@
 import Foundation
+import SimExec
 
 public struct ControlMessage {
-    
     public var code: String
     
     public init(code: String) {
         self.code = code
+    }
+    
+    public func validate() throws {
+        guard let _ = code.range(of: "ViewController") else {
+            throw MessageError("you must define ViewController class")
+        }
+        guard let _ = code.range(of: "UIKit") else {
+            throw MessageError("you must import UIKit")
+        }        
     }
     
     public static func parse(_ message: String) -> ControlMessage? {

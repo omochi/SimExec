@@ -229,6 +229,7 @@ public final class JSONConnection {
                             "offset": "\(fileSend.sentSize)",
                             "total": "\(fileSend.totalSize!)"
             ])
+        print("send: ===\n\(data.toUTF8Robust())===")
         _send(data: data) { [weak self] () in
             guard let self = self else { return }
             
@@ -352,7 +353,7 @@ public final class JSONConnection {
             return false
         }
         
-        guard let sepRange = receiveBuffer.firstRange(of: sep) else {
+        guard let sepRange = receiveBuffer.range(of: sep) else {
             return false
         }
         
@@ -361,6 +362,8 @@ public final class JSONConnection {
         {
             throw MessageError("invalid data received")
         }
+        
+        print("header=\(header)")
         
         let lines = header.components(separatedBy: "\n")
         let fields = lines.compactMap { (line: String) -> (String, String)? in

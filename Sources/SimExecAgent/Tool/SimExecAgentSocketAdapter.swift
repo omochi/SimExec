@@ -64,6 +64,12 @@ public final class SimExecAgentSocketAdapter {
         nwListener.start(queue: queue)
     }
     
+    deinit {
+        print("SimExecAgentSocketAdapter.deinit")
+        
+        terminate()
+    }
+    
     public func terminate() {
         for connection in connections {
             connection.close()

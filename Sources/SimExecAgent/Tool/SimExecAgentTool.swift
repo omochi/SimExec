@@ -60,6 +60,12 @@ public final class SimExecAgentTool {
                                                      fileSystem: fileSystem)
     }
     
+    deinit {
+        print("SimExecAgent.deinit")
+        
+        terminate()
+    }
+    
     public func terminate() {
         self.adapter.terminate()
     }
@@ -136,7 +142,8 @@ public final class SimExecAgentTool {
     
     public static func main(arguments: [String]) -> Never {
         do {
-            _ = try SimExecAgentTool(queue: DispatchQueue.main)
+            let tool = try SimExecAgentTool(queue: DispatchQueue.main)
+            _ = tool
             dispatchMain()
         } catch {
             fatalError("\(error)")
